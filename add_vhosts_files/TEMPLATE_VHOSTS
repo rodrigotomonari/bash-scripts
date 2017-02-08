@@ -1,0 +1,40 @@
+<VirtualHost *:80>
+	
+	ServerName DOMAIN
+	ServerAlias www.DOMAIN
+
+	ServerAdmin admin@royalpixel.tv
+	DocumentRoot /home/vhosts/DOMAIN/public
+
+	<Directory /home/vhosts/DOMAIN/public>	
+		Options -Indexes
+		AllowOverride all
+		Require all granted
+	</Directory>
+
+	<IfModule mod_fastcgi.c>
+		AddType application/x-httpd-fastphp .php
+		Action application/x-httpd-fastphp /php5-fcgi
+		Alias /php5-fcgi /usr/lib/cgi-bin/php5-fcgi-DOMAIN
+		FastCgiExternalServer /usr/lib/cgi-bin/php5-fcgi-DOMAIN -socket /var/run/php5-fpm-DOMAIN.sock -pass-header Authorization
+		<Directory /usr/lib/cgi-bin>
+			Require all granted
+		</Directory>
+	</IfModule>
+
+	<FilesMatch ".+\.ph(p[345]?|t|tml)$">
+		SetHandler application/x-httpd-fastphp
+	</FilesMatch>
+
+	<LocationMatch "/(fpm-ping|fpm-status)">
+		Require local
+		SetHandler php5-fcgi-virt-DOMAIN
+		Action php5-fcgi-virt-DOMAIN /php5-fcgi virtual
+	</LocationMatch>
+
+	ErrorLog ${APACHE_LOG_DIR}/error.log
+	CustomLog ${APACHE_LOG_DIR}/access.log vhost_combined
+
+</VirtualHost>
+
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet
