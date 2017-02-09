@@ -1,19 +1,11 @@
-# php5-fpm - The PHP FastCGI Process Manager
-
 description "The PHP FastCGI Process Manager"
 author "Rodrigo Tomonari Muino <rodrigo.tomonari@gmail.com>"
 
 start on runlevel [2345]
 stop on runlevel [016]
 
-pre-start script
-	errors=$(/usr/sbin/php5-fpm --fpm-config /etc/php5/fpm/php5-fpm-DOMAIN.conf -t 2>&1 | grep "\[ERROR\]" || true);
-	if [ -n "$errors" ]; then
-		stop 
-		exit 0
-	fi
-end script
+pre-start exec FPM_CHECKCONF
 
 respawn
 
-exec /usr/sbin/php5-fpm --nodaemonize --fpm-config /etc/php5/fpm/php5-fpm-DOMAIN.conf
+exec FPM_BIN --nodaemonize --fpm-config FPM_CONF

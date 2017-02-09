@@ -14,22 +14,22 @@
 
 	<IfModule mod_fastcgi.c>
 		AddType application/x-httpd-fastphp .php
-		Action application/x-httpd-fastphp /php5-fcgi
-		Alias /php5-fcgi /usr/lib/cgi-bin/php5-fcgi-DOMAIN
-		FastCgiExternalServer /usr/lib/cgi-bin/php5-fcgi-DOMAIN -socket /var/run/php5-fpm-DOMAIN.sock -pass-header Authorization
+		Action application/x-httpd-fastphp /phpPHP_VERSION-fcgi
+		Alias /phpPHP_VERSION-fcgi /usr/lib/cgi-bin/phpPHP_VERSION-fcgi-DOMAIN
+		FastCgiExternalServer /usr/lib/cgi-bin/phpPHP_VERSION-fcgi-DOMAIN -socket FPM_SOCKET -pass-header Authorization
 		<Directory /usr/lib/cgi-bin>
 			Require all granted
 		</Directory>
 	</IfModule>
 
-	<FilesMatch ".+\.ph(p[345]?|t|tml)$">
+	<FilesMatch ".+\.ph(p[3457]?|t|tml)$">
 		SetHandler application/x-httpd-fastphp
 	</FilesMatch>
 
 	<LocationMatch "/(fpm-ping|fpm-status)">
 		Require local
-		SetHandler php5-fcgi-virt-DOMAIN
-		Action php5-fcgi-virt-DOMAIN /php5-fcgi virtual
+		SetHandler phpPHP_VERSION-fcgi-virt-DOMAIN
+		Action php5-fcgi-virt-DOMAIN /phpPHP_VERSION-fcgi virtual
 	</LocationMatch>
 
 	ErrorLog ${APACHE_LOG_DIR}/error.log
