@@ -16,7 +16,7 @@
 		AddType application/x-httpd-fastphp .php
 		Action application/x-httpd-fastphp /phpPHP_VERSION-fcgi
 		Alias /phpPHP_VERSION-fcgi /usr/lib/cgi-bin/phpPHP_VERSION-fcgi-DOMAIN
-		FastCgiExternalServer /usr/lib/cgi-bin/phpPHP_VERSION-fcgi-DOMAIN -socket FPM_SOCKET -pass-header Authorization
+		FastCgiExternalServer /usr/lib/cgi-bin/phpPHP_VERSION-fcgi-DOMAIN -socket FPM_SOCKET -pass-header Authorization -idle-timeout 600
 		<Directory /usr/lib/cgi-bin>
 			Require all granted
 		</Directory>
