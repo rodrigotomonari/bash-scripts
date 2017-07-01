@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Errors
+# - configure: error: Your system does not support systemd.
+# RUN: ln -s /lib/x86_64-linux-gnu/libsystemd-daemon.so.0 /lib/x86_64-linux-gnu/libsystemd-daemon.so 
+#
+
 function print_usage()
 {
     echo "-- Install PHP --"
@@ -41,7 +46,7 @@ tar jxf php-${php_version}.tar.bz2
 
 cd php-${php_version}/
 
-apt-get install build-essential libxml2-dev libssl-dev libbz2-dev libmcrypt-dev libmhash-dev libmysqlclient-dev libcurl4-openssl-dev libjpeg62-dbg libjpeg-dev libpng12-dev libfreetype6-dev libxslt1-dev
+apt-get install build-essential libxml2-dev libssl-dev libbz2-dev libmcrypt-dev libmhash-dev libmysqlclient-dev libcurl4-openssl-dev libjpeg62-dbg libjpeg-dev libpng12-dev libfreetype6-dev libxslt1-dev libsystemd-dev
 
 ./configure \
 --prefix=/opt/php-${php_version} \
