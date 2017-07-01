@@ -46,10 +46,25 @@ tar jxf php-${php_version}.tar.bz2
 
 cd php-${php_version}/
 
-apt-get install build-essential libxml2-dev libssl-dev libbz2-dev libmcrypt-dev libmhash-dev libmysqlclient-dev libcurl4-openssl-dev libjpeg62-dbg libjpeg-dev libpng12-dev libfreetype6-dev libxslt1-dev libsystemd-dev
+apt-get install build-essential \
+                libxml2-dev \
+                libssl-dev \
+                libbz2-dev \
+                libmcrypt-dev \
+                libmhash-dev \
+                libmysqlclient-dev \
+                libcurl4-openssl-dev \
+                libjpeg62-dbg \
+                libjpeg-dev \
+                libpng12-dev \
+                libfreetype6-dev \
+                libxslt1-dev \
+                libsystemd-dev \
+                pkg-config 
 
 ./configure \
 --prefix=/opt/php-${php_version} \
+--with-config-file-path=/etc/php/${php_version}/fpm
 --with-zlib-dir \
 --with-freetype-dir \
 --enable-mbstring \
@@ -79,7 +94,6 @@ apt-get install build-essential libxml2-dev libssl-dev libbz2-dev libmcrypt-dev 
 --with-mysqli \
 --with-jpeg-dir=/usr \
 --with-png-dir=/usr \
---enable-gd-native-ttf \
 --with-openssl \
 --with-fpm-user=www-data \
 --with-fpm-group=www-data \
@@ -90,8 +104,14 @@ apt-get install build-essential libxml2-dev libssl-dev libbz2-dev libmcrypt-dev 
 --with-xmlrpc \
 --with-xsl \
 --with-kerberos \
---enable-fpm
+--enable-fpm \
+--enable-gd-native-ttf
 
+make clean
 make
+make install
+echo "cp /opt/php-${php_version}/sbin/php-fpm /usr/sbin/php-fpm-${php_version}"
+echo "cp /opt/php-${php_version}/bin/php /usr/bin/php${php_version}"
+
 
 

@@ -25,6 +25,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "ubuntu16", primary: true do |ubuntu16|
     ubuntu16.vm.box = "ubuntu/xenial64"
+    ubuntu16.vm.network :forwarded_port, guest: 80, host: 3000 # Passenger Webserver
     config.vm.provision "shell", inline: <<-SHELL
       apt-get update
       apt-get install -y apache2 libapache2-mod-fastcgi php7.0 php7.0-fpm links2
