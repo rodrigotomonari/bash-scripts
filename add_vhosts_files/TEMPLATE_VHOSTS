@@ -29,7 +29,7 @@
 	<LocationMatch "/(fpm-ping|fpm-status)">
 		Require local
 		SetHandler phpPHP_VERSION-fcgi-virt-DOMAIN
-		Action php5-fcgi-virt-DOMAIN /phpPHP_VERSION-fcgi virtual
+		Action phpPHP_VERSION-fcgi-virt-DOMAIN /phpPHP_VERSION-fcgi virtual
 	</LocationMatch>
 
 	ErrorLog ${APACHE_LOG_DIR}/error.log

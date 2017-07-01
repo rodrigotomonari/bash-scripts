@@ -18,7 +18,7 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: <<-SHELL
       apt-get update
       apt-get install -y apache2 libapache2-mod-fastcgi php5 php5-fpm links2
-      a2enmod actions fastcgi alias
+      a2enmod actions fastcgi alias rewrite
       service apache2 restart
     SHELL
   end
@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
     config.vm.provision "shell", inline: <<-SHELL
       apt-get update
       apt-get install -y apache2 libapache2-mod-fastcgi php7.0 php7.0-fpm links2
-      a2enmod actions fastcgi alias
+      a2enmod actions fastcgi alias rewrite
       service apache2 restart
     SHELL
   end

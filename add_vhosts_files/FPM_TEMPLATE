@@ -1,6 +1,9 @@
 [global]
 pid = FPM_PID
 error_log = /var/log/phpPHP_VERSION-fpm.log
+emergency_restart_threshold = 10
+emergency_restart_interval = 1m
+process_control_timeout = 10
 
 [DOMAIN]
 
@@ -13,7 +16,7 @@ listen.group = www-data
 listen.allowed_clients = 127.0.0.1
 
 pm = ondemand
-pm.max_children = 5
+pm.max_children = 10
 pm.process_idle_timeout = 10s;
 pm.max_requests = 500
 pm.status_path = /fpm-status
@@ -21,6 +24,10 @@ ping.path = /fpm-ping
  
 chdir = /
 
+catch_workers_output = yes
+request_slowlog_timeout = 5s
+slowlog = /var/log/$pool.log.slow
+
 php_admin_value[open_basedir] = /home/vhosts/DOMAIN:/tmp:/usr/share/php
-php_admin_value[error_log] = /var/log/phpPHP_VERSION-fpm.log
+php_admin_value[error_log] = /var/log/php-fpm-DOMAIN.log
 php_admin_flag[log_errors] = on

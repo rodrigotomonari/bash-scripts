@@ -96,6 +96,7 @@ chmod 750 ${VHOSTS_DIR}/$domain/public
 
 #Fix chroot permition
 chown root:root ${VHOSTS_DIR}/$domain
+chmod o-r ${VHOSTS_DIR}/$domain
 
 log "Configuring vhosts"
 
@@ -151,6 +152,11 @@ if [ $php_support -eq 1 ]; then
     elif [ -f $fpm_service ]; then
         log "--- PHP FPM SERVICE Already exist. Use -f to overwrite"
     fi
+
+    # Create FPM Log
+    touch /var/log/php-fpm-$domain.log
+    chown $user:$user /var/log/php-fpm-$domain.log
+
 else
     if [ $force -eq 1 -o ! -f $vhost_file ]; then
         cat ${BASEDIR}/add_vhosts_files/TEMPLATE_VHOSTS_NO_PHP > $vhost_file

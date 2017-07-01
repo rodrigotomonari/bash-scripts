@@ -5,11 +5,10 @@ SCRIPT=$(readlink -f "$0")
 BASEDIR=$(dirname $SCRIPT)
 
 force=0
-php_support=1
 
 function print_usage()
 {
-    echo "-- Add vhost --"
+    echo "-- ADD REDIRECT VHOST --"
     echo ""
     echo "Use: $0 [options] -d <domain> -r <redirect_to>"
     echo "IE: $0 -d exemple.com -r http://royalpixel.tv/blog"
@@ -66,6 +65,9 @@ apache2ctl configtest &> /dev/null
 apache_test=$? 
 if [ $apache_test -ne 0 ]; then
     log "*** ERROR Vhost Conf ***---"
+else
+  log "Config Pass"
+  log "service apache2 reload"
 fi
 
 exit 0
