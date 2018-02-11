@@ -7,10 +7,13 @@
 # Description:
 # Restart fpm service
 # Use this script to restart fpm service
+# Also use the -s option to check service status. Many information in systemd system.
 
 SCRIPT=$(readlink -f "$0")
 
 BASEDIR=$(dirname ${SCRIPT})
+
+status=0
 
 # Import functions
 . ${BASEDIR}/utils/log.sh
@@ -37,8 +40,14 @@ function main()
 
     for domain in ${service_list}
     do
-        log "Restarting ${domain}"
-        service ${domain} restart
+        if [ "${status}" -eq "0" ]
+        then
+            log_warn "Restarting ${domain}"
+            service ${domain} restart
+        else
+            log_success "Status ${domain}"
+            service ${domain} status
+        fi
     done
 }
 
@@ -46,17 +55,19 @@ function print_usage()
 {
     echo "-- Restart FPM --"
     echo ""
-    echo "Use: $0 -u <user>"
+    echo "Use: $0 [options]"
     echo ""
     echo "Options:"
     echo "-d : Domain name"
+    echo "-s : Check status instead of restart"
     echo ""
     exit 1
 }
 
-while getopts "u:d:yh?" options; do
+while getopts "d:sh?" options; do
     case ${options} in
         d ) domain=$OPTARG;;
+        s ) status=1;;
         h ) print_usage;;
         \? ) print_usage;;
         * ) print_usage;;
