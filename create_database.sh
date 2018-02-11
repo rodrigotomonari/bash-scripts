@@ -91,7 +91,7 @@ function main()
 
 function print_usage()
 {
-    echo "-- Disable SSH KEY --"
+    echo "-- Create MySQL database --"
     echo ""
     echo "Use: $0 -b <database> -u <user>"
     echo ""
