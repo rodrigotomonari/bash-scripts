@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Version 1
+# License Type: GNU GENERAL PUBLIC LICENSE, Version 3
+# Author:
+# Rodrigo Tomonari Muino / https://github.com/rodrigotomonari
+# Description:
+# Remove user ssh access from domain
+# This script search for the line where the user comment is in the authorized_keys file and delete the line
+# Alert: This script only works if the user was properly inserted in key comment
+#
+# In the user option it's possible to insert a pattern too =)
+
 VHOST_DIR="/home/vhosts"
 
 SCRIPT=$(readlink -f "$0") 

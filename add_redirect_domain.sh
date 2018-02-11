@@ -6,6 +6,8 @@
 # Rodrigo Tomonari Muino / https://github.com/rodrigotomonari
 # Description:
 # Configure a redirect domain in Apache
+# Use this script to configure a domain only for redirect.
+# No public folder or user will be created.
 
 SCRIPT=$(readlink -f "$0")
 

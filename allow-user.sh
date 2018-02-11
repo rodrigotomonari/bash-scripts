@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# Version 1
+# License Type: GNU GENERAL PUBLIC LICENSE, Version 3
+# Author:
+# Rodrigo Tomonari Muino / https://github.com/rodrigotomonari
+# Description:
+# Grant user ssh access to domain
+# Users public key should be stored in keys folder. The key filename should be the username and the key comment
+# has to be the username too.
+# IE:
+# filename: keys/john.doe
+# ssh-rsa AAAAAAA... john.doe
+#
+# TODO:
+# - Remove comment obligation
+# - Read $VHOST_DIR from config vars
+# - Add update function
+
 VHOST_DIR="/home/vhosts"
 
 SCRIPT=$(readlink -f "$0") 
