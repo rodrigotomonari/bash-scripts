@@ -1,5 +1,5 @@
 description "The PHP FastCGI Process Manager"
-author "Rodrigo Tomonari Muino <rodrigo.tomonari@gmail.com>"
+author "Rodrigo Tomonari Muino"
 
 start on runlevel [2345]
 stop on runlevel [016]

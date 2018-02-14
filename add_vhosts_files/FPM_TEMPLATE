@@ -29,5 +29,5 @@ request_slowlog_timeout = 5s
 slowlog = /var/log/$pool.log.slow
 
 php_admin_value[open_basedir] = /home/vhosts/DOMAIN:/tmp:/usr/share/php
-php_admin_value[error_log] = /var/log/php-fpm-DOMAIN.log
+php_admin_value[error_log] = PHP_LOG
 php_admin_flag[log_errors] = on

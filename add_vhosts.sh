@@ -4,10 +4,262 @@ VHOSTS_DIR="/home/vhosts"
 
 SCRIPT=$(readlink -f "$0")
 
-BASEDIR=$(dirname $SCRIPT)
+BASEDIR=$(dirname ${SCRIPT})
+
+TEMPLATE_DIR=${BASEDIR}/add_vhosts_files
+
+# Import functions
+. ${BASEDIR}/utils/log.sh
+. ${BASEDIR}/utils/domain.sh
+. ${BASEDIR}/utils/compare.sh
 
 force=0
 php_support=1
+compare=0
+
+ubuntu_version=$(lsb_release -r -s)
+
+function php_guess()
+{
+    # Use PHP 5 in Ubuntu 14.04
+    [ "${ubuntu_version}" = "14.04" ] && php_version="5" && return 0
+
+    php_version=$(ls /etc/php/ | tail -n 1)
+}
+
+function options_check()
+{
+    if [ -z "${domain}" ]
+    then
+        log_error "You must specify the domain"
+        log_blank
+
+        print_usage
+        exit 1
+    fi
+
+    [ -z "${user}" ] && user=${domain}
+
+    if [ ${#user} -gt 32 ]
+    then
+        log_error "Username length bigger than 32 chars. Use -u and specify a username"
+        exit 1
+    fi
+
+    if [ -z "$php_version" ] && [ "${php_support}" -eq "1" ]
+    then
+        log_warn "No PHP version provided. Trying to guess"
+
+        php_guess
+
+        log "PHP ${php_version} selected"
+    fi
+}
+
+function create_vhost_user()
+{
+    # Create vhost dir
+    [ ! -d ${VHOSTS_DIR} ] && mkdir -p ${VHOSTS_DIR}
+
+    log "Verify if user does not exist"
+    if [ -n  "$(getent passwd ${user})" ]; then
+        log_warn "- User already exist"
+    else
+        log "- Creating user"
+        useradd --home-dir ${VHOSTS_DIR}/${domain} --shell /bin/bash --create-home ${user}
+    fi
+
+    log "Set user home permission"
+    chmod 711 ${VHOSTS_DIR}/${domain}
+
+    log "- Adding www-data to user group"
+    addgroup www-data ${user} > /dev/null
+
+    log "Creating public folder"
+    [ ! -d ${VHOSTS_DIR}/${domain}/public ] && mkdir ${VHOSTS_DIR}/${domain}/public
+
+    log "Allowing ssh users"
+    # Default users
+    ${BASEDIR}/allow-user.sh -d ${domain} -u rodrigo.tomonari
+    ${BASEDIR}/allow-user.sh -d ${domain} -u diego.rocha
+    ${BASEDIR}/allow-user.sh -d ${domain} -u diego.rocha
+
+    # Allow write access to public
+    chown ${user}:${user} ${VHOSTS_DIR}/${domain}/public
+    chmod 750 ${VHOSTS_DIR}/${domain}/public
+}
+
+function set_variables_file_path
+{
+    vhost_file="/etc/apache2/sites-available/${domain}.conf"
+    vhost_fpm_conf="/etc/apache2/vhosts-conf-available/${domain}/fpm.conf"
+    fpm_socket="/var/run/php${php_version}-fpm-${domain}.sock"
+    init_file="/etc/init/php${php_version}-fpm-${domain}.conf"
+    fpm_service="/lib/systemd/system/php${php_version}-fpm-${domain}.service"
+    fpm_pid="/var/run/php${php_version}-fpm-${domain}.pid"
+    php_log="/var/log/php-fpm-${domain}.log"
+
+    if [ "${ubuntu_version}" = "14.04" ]; then
+        fpm_conf_file="/etc/php5/fpm/php${php_version}-fpm-${domain}.conf"
+        fpm_bin="/usr/sbin/php5-fpm"
+        fpm_checkconf="/usr/lib/php5/php${php_version}-fpm-${domain}-checkconf"
+    else
+        fpm_conf_file="/etc/php/${php_version}/fpm/php${php_version}-fpm-${domain}.conf"
+        fpm_bin="/usr/sbin/php-fpm${php_version}"
+        fpm_checkconf="/usr/lib/php/php${php_version}-fpm-${domain}-checkconf"
+    fi
+}
+
+function test_overwrite
+{
+    local file=$1
+
+    if [ ${force} -eq 1 -o ${compare} -eq 1 -o ! -f ${file} ]
+    then
+        return 0
+    else
+        return 1
+    fi
+}
+
+function create_vhost
+{
+    if $(test_overwrite ${vhost_file})
+    then
+        mkdir -p /etc/apache2/vhosts-conf-available/${domain}/
+
+        create_tmp TEMPLATE_VHOST
+        move_or_diff TEMPLATE_VHOST ${vhost_file}
+    else
+        log_warn "Vhosts file already exist. Use -f to overwrite"
+    fi
+}
+
+function create_vhost_fpm_conf
+{
+    if $(test_overwrite ${vhost_fpm_conf})
+    then
+        create_tmp TEMPLATE_VHOST_FPM_CONF
+        move_or_diff TEMPLATE_VHOST_FPM_CONF ${vhost_fpm_conf}
+    else
+        log_warn "VHOST FPM CONF Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_fpm_config
+{
+    if $(test_overwrite ${fpm_conf_file})
+    then
+        create_tmp FPM_TEMPLATE
+        move_or_diff FPM_TEMPLATE ${fpm_conf_file}
+
+        touch ${php_log}
+        chown ${user}:${user} ${php_log}
+    else
+        log_warn "PHP FPM Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_fpm_checkconf
+{
+    if $(test_overwrite ${fpm_checkconf})
+    then
+        create_tmp FPM_CHECKCONF_TEMPLATE
+        move_or_diff FPM_CHECKCONF_TEMPLATE ${fpm_checkconf}
+
+        [ ${compare} -eq 0 ] && chmod +x ${fpm_checkconf}
+    else
+        log_warn "PHP FPM CHECKCONF Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_fpm_init
+{
+    if $(test_overwrite ${init_file})
+    then
+        create_tmp FPM_INIT_TEMPLATE
+        move_or_diff FPM_INIT_TEMPLATE ${init_file}
+    else
+        log "PHP FPM INIT Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_fpm_service
+{
+    if $(test_overwrite ${fpm_service})
+    then
+        create_tmp FPM_SERVICE_TEMPLATE
+        move_or_diff FPM_SERVICE_TEMPLATE ${fpm_service}
+    else
+        log "PHP FPM SERVICE Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_tmp
+{
+    local template_name=$1
+
+    cat ${TEMPLATE_DIR}/${template_name} > ${TEMPLATE_DIR}/tmp/${template_name}
+    replace_keys ${TEMPLATE_DIR}/tmp/${template_name}
+}
+
+function move_or_diff
+{
+    local temp=${TEMPLATE_DIR}/tmp/$1
+    local final=$2
+
+    if [ ${compare} -eq 1 ]
+    then
+        log_success "Comparing: ${final} ${temp}"
+        compare ${final} ${temp}
+        echo ""
+    else
+        mv ${temp} ${final}
+    fi
+}
+
+function check_all()
+{
+    log "Activating Vhost"
+    a2ensite ${domain}
+
+    log "Test apache2 config files"
+    apache2ctl configtest &> /dev/null
+    apache_test=$?
+    if [ ${apache_test} -ne 0 ]
+    then
+        log_error "*** ERROR Vhost Conf ***---"
+    fi
+
+    if [ ${php_support} -eq 1 ]
+    then
+        log "Test FPM config files"
+
+        ${fpm_checkconf}
+
+        fpm_test=$?
+
+        if [ ${fpm_test} -ne 0 ]
+        then
+            log_error "*** ERROR IN FPM ***---"
+        fi
+    fi
+
+    if [ ${apache_test} -eq 0  ]; then
+        log_success "service apache2 reload"
+    fi
+
+    if [ "${fpm_test}" -eq 0  ]
+    then
+        if [ "${ubuntu_version}" = "14.04" ]
+        then
+            log_success "service php${php_version}-fpm-${domain} start"
+        else
+            log_success "systemctl enable php${php_version}-fpm-${domain} && service php${php_version}-fpm-${domain} start"
+        fi
+    fi
+
+}
 
 function print_usage()
 {
@@ -17,16 +269,11 @@ function print_usage()
     echo ""
     echo "Options:"
     echo "-u : Use a custom user"
-    echo "-p : No PHP support"
+    echo "-n : No PHP support"
     echo "-f : Force files overwrite"
-    echo "-a : PHP Version"
+    echo "-p : PHP Version"
     echo ""
     exit 1
-}
-
-function log()
-{
-    echo "--- $1"
 }
 
 function replace_keys() {
@@ -38,173 +285,52 @@ function replace_keys() {
     sed -i "s/FPM_BIN/${fpm_bin//\//\\/}/g" $1
     sed -i "s/FPM_CHECKCONF/${fpm_checkconf//\//\\/}/g" $1
     sed -i "s/FPM_PID/${fpm_pid//\//\\/}/g" $1
+    sed -i "s/PHP_LOG/${php_log//\//\\/}/g" $1
+
 }
 
-while getopts "d:u:a:fph?" options; do
-  case $options in
+while getopts "d:u:p:fnch?" options; do
+  case ${options} in
     d ) domain=$OPTARG;;
     u ) user=$OPTARG;;
-    a ) php_version=$OPTARG;;
+    p ) php_version=$OPTARG;;
     f ) force=1;;
-    p ) php_support=0;;
+    n ) php_support=0;;
+    c ) compare=1;;
     h ) print_usage;;
     \? ) print_usage;;
     * ) print_usage;;
   esac
 done
 
-[ -z $domain ] && echo "You must specify the domain" && exit 1
+options_check
 
-[ -z $php_version ] && echo "You must specify the PHP Version" && exit 1
+set_variables_file_path
 
-[ -z $user ] && user=$domain
 
-[ ${#user} -gt 32 ] && echo "Username length bigger than 32 chars. Use -u and specify a username"
-
-[ ! -d ${VHOSTS_DIR} ] && mkdir -p ${VHOSTS_DIR}
-
-log "Verify if user does not exist"
-
-if [ -n  "$(getent passwd $user)" ]; then
-    log "--- User already exist" 
-else
-    log "--- Creating user"
-    useradd --home-dir ${VHOSTS_DIR}/$domain --shell /bin/bash --create-home $user
+if [ ${compare} -eq 0 ]
+then
+    create_vhost_user
 fi
 
-log "--- Adding www-data to user group"
-addgroup www-data $user > /dev/null
+create_vhost
 
-#log "--- Adding user do sftp group"
-#addgroup $user sftp
+if [ ${php_support} -eq 1 ]
+then
+    create_vhost_fpm_conf
 
-log "Creating public diretory"
-[ ! -d ${VHOSTS_DIR}/$domain/public ] && mkdir ${VHOSTS_DIR}/$domain/public
+    create_fpm_config
 
-log "Allowing ssh users"
-${BASEDIR}/allow-user.sh -d $domain -u rodrigo.tomonari
-${BASEDIR}/allow-user.sh -d $domain -u diego.rocha
+    create_fpm_checkconf
 
-log "Setting permissions"
+    create_fpm_init
 
-#Prevent user adding new keys
-chown root:root ${VHOSTS_DIR}/$domain/.ssh
-
-#Allow write access to public
-chown $user:$user ${VHOSTS_DIR}/$domain/public
-chmod 750 ${VHOSTS_DIR}/$domain/public
-
-#Fix chroot permition
-chown root:root ${VHOSTS_DIR}/$domain
-chmod o-r ${VHOSTS_DIR}/$domain
-
-log "Configuring vhosts"
-
-vhost_file="/etc/apache2/sites-available/${domain}.conf"
-fpm_socket="/var/run/php${php_version}-fpm-${domain}.sock"
-init_file="/etc/init/php-fpm-${domain}.conf"
-fpm_service="/lib/systemd/system/php-fpm-${domain}.service"
-fpm_pid="/var/run/php${php_version}-fpm-${domain}.pid"
-
-if [ "$(lsb_release -r -s)" = "14.04" ]; then
-    fpm_conf_file="/etc/php5/fpm/php-fpm-${domain}.conf"
-    fpm_bin="/usr/sbin/php5-fpm"
-    fpm_checkconf="/usr/lib/php5/php-fpm-${domain}-checkconf"
-else
-    fpm_conf_file="/etc/php/${php_version}/fpm/php-fpm-${domain}.conf"
-    fpm_bin="/usr/sbin/php-fpm${php_version}"
-    fpm_checkconf="/usr/lib/php/php${php_version}-fpm-${domain}-checkconf"
+    create_fpm_service
 fi
 
-if [ $php_support -eq 1 ]; then
-    if [ $force -eq 1 -o ! -f  $vhost_file ]; then
-        cat ${BASEDIR}/add_vhosts_files/TEMPLATE_VHOSTS > $vhost_file
-        replace_keys $vhost_file
-    elif [ -f $vhost_file ]; then
-        log "--- Vhosts file already exist. Use -f to overwrite"
-    fi
-    
-    if [ $force -eq 1 -o ! -f $fpm_conf_file ]; then
-        cat ${BASEDIR}/add_vhosts_files/FPM_TEMPLATE > $fpm_conf_file
-        replace_keys $fpm_conf_file
-    elif [ -f $fpm_conf_file ]; then
-        log "--- PHP FPM Already exist. Use -f to overwrite"
-    fi
-    
-    if [ $force -eq 1 -o ! -f $init_file ]; then
-        cat ${BASEDIR}/add_vhosts_files/FPM_INIT_TEMPLATE > $init_file
-        replace_keys $init_file
-    elif [ -f $init_file ]; then
-        log "--- PHP FPM INIT Already exist. Use -f to overwrite"
-    fi
-
-    if [ $force -eq 1 -o ! -f $fpm_checkconf ]; then
-        cat ${BASEDIR}/add_vhosts_files/FPM_CHECKCONF_TEMPLATE > $fpm_checkconf
-        replace_keys $fpm_checkconf
-        chmod +x $fpm_checkconf
-    elif [ -f $fpm_checkconf ]; then
-        log "--- PHP FPM CHECKCONF Already exist. Use -f to overwrite"
-    fi
-
-    if [ $force -eq 1 -o ! -f $fpm_service ]; then
-        cat ${BASEDIR}/add_vhosts_files/FPM_SERVICE_TEMPLATE > $fpm_service
-        replace_keys $fpm_service
-    elif [ -f $fpm_service ]; then
-        log "--- PHP FPM SERVICE Already exist. Use -f to overwrite"
-    fi
-
-    # Create FPM Log
-    touch /var/log/php-fpm-$domain.log
-    chown $user:$user /var/log/php-fpm-$domain.log
-
-else
-    if [ $force -eq 1 -o ! -f $vhost_file ]; then
-        cat ${BASEDIR}/add_vhosts_files/TEMPLATE_VHOSTS_NO_PHP > $vhost_file
-        replace_keys $vhost_file
-    elif [ -f $vhost_file ]; then
-        log "--- Vhosts file already exist. Use -f to overwrite"
-    fi
-fi
-
-
-log "Activating Vhost"
-a2ensite $domain
-
-log "Test apache2 config files"
-apache2ctl configtest &> /dev/null
-apache_test=$? 
-if [ $apache_test -ne 0 ]; then
-    log "*** ERROR Vhost Conf ***---"
-fi
-
-if [ $php_support -eq 1 ]; then
-    log "Test FPM config files"
-    
-    $fpm_checkconf
-    if [ $? -ne 0 ]; then
-        log "*** ERROR IN FPM ***---"
-    fi
-
-    if [ $apache_test -eq 0  ] && [ -z "$fpm_test" ]; then
-        echo ""
-
-        if [ "$(lsb_release -r -s)" = "14.04" ]; then
-            echo "service apache2 reload && service php-fpm-${domain} start"
-        else
-            echo "service apache2 reload && systemctl enable php-fpm-${domain} && service php-fpm-${domain} start"
-        fi
-    else
-        echo ""
-        log "*** VERIFY CONFIG ***---"
-    fi
-else
-    if [ $apache_test -eq 0  ]; then
-        echo ""
-        echo "service apache2 reload"
-    else
-        echo ""
-        log "*** VERIFY CONFIG ***---"
-    fi
+if [ ${compare} -eq 0 ]
+then
+    check_all
 fi
 
 exit 0

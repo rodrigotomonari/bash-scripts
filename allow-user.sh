@@ -94,7 +94,7 @@ function file_key_exist?()
 
 function set_ssh_dir_perms()
 {
-    chmod 711 ${VHOST_DIR}${domain}/.ssh/
+    chmod 711 ${VHOST_DIR}/${domain}/.ssh/
 }
 
 function set_authorized_keys_perms()
@@ -122,8 +122,8 @@ function grant_permission()
 
 function main
 {
-    log "- Verify if user already has ssh permission"
-    user_has_permission? && log_error "- User already has ssh permission" && exit 1
+    log "- Verify if user ${user} already has ssh permission"
+    user_has_permission? && log_error "- User ${user} already has ssh permission" && exit 1
     log "- Good to go"
     grant_permission
     user_has_permission? && log_success "- Permission granted" && exit 0
