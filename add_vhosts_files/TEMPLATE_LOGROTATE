@@ -1,11 +1,12 @@
 PHP_LOG {
-	rotate 12
-	weekly
-	missingok
-	notifempty
-	compress
-	delaycompress
-	postrotate
-		/usr/lib/php/php7.0-fpm-reopenlogs
-	endscript
+    su root USER
+    rotate 12
+    weekly
+    missingok
+    notifempty
+    compress
+    delaycompress
+    postrotate
+        FPM_REOPENLOGS
+    endscript
 }

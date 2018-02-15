@@ -1,0 +1,5 @@
+check process phpPHP_VERSION-fpm-DOMAIN with pidfile FPM_PID
+   start program = "/usr/sbin/service phpPHP_VERSION-fpm-DOMAIN start"
+   stop program  = "/usr/sbin/service phpPHP_VERSION-fpm-DOMAIN stop"
+   if 4 restarts within 20 cycles then timeout
+   if failed unixsocket FPM_SOCKET then restart

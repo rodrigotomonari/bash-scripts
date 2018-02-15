@@ -5,9 +5,12 @@ Vagrant.configure("2") do |config|
     ubuntu14.vm.provision "shell", inline: <<-SHELL
       export DEBIAN_FRONTEND=noninteractive
       apt-get update
-      apt-get install -y apache2 libapache2-mod-fastcgi php5 php5-fpm links2 mysql-server mysql-client
+      apt-get install -y apache2 libapache2-mod-fastcgi php5 php5-fpm links2 mysql-server mysql-client monit
       a2enmod actions fastcgi alias rewrite
       service apache2 restart
+
+      echo "set httpd port 2812 and use address localhost allow localhost" > /etc/monit/conf.d/daemon
+      service monit reload
     SHELL
   end
 
@@ -17,9 +20,12 @@ Vagrant.configure("2") do |config|
     ubuntu16.vm.provision "shell", inline: <<-SHELL
       export DEBIAN_FRONTEND=noninteractive
       apt-get update
-      apt-get install -y apache2 libapache2-mod-fastcgi php7.0 php7.0-fpm links2 mysql-server mysql-client
+      apt-get install -y apache2 libapache2-mod-fastcgi php7.0 php7.0-fpm links2 mysql-server mysql-client monit
       a2enmod actions fastcgi alias rewrite
       service apache2 restart
+
+      echo "set httpd port 2812 and use address localhost allow localhost" > /etc/monit/conf.d/daemon
+      service monit reload
     SHELL
   end
 end

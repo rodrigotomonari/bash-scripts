@@ -97,16 +97,19 @@ function set_variables_file_path
     init_file="/etc/init/php${php_version}-fpm-${domain}.conf"
     fpm_service="/lib/systemd/system/php${php_version}-fpm-${domain}.service"
     fpm_pid="/var/run/php${php_version}-fpm-${domain}.pid"
-    php_log="/var/log/php-fpm-${domain}.log"
+    fpm_conf_file="/etc/php/${php_version}/fpm/php${php_version}-fpm-${domain}.conf"
+    fpm_bin="/usr/sbin/php-fpm${php_version}"
+    fpm_checkconf="/usr/lib/php/php${php_version}-fpm-${domain}-checkconf"
+    php_log="/var/log/php/php-fpm-${domain}.log"
+    log_rotate="/etc/logrotate.d/php${php_version}-fpm-${domain}"
+    php_reopenlogs="/usr/lib/php/php${php_version}-fpm-${domain}-reopenlogs"
+    monit_conf="/etc/monit/conf.d/php${php_version}-fpm-${domain}"
 
     if [ "${ubuntu_version}" = "14.04" ]; then
         fpm_conf_file="/etc/php5/fpm/php${php_version}-fpm-${domain}.conf"
         fpm_bin="/usr/sbin/php5-fpm"
         fpm_checkconf="/usr/lib/php5/php${php_version}-fpm-${domain}-checkconf"
-    else
-        fpm_conf_file="/etc/php/${php_version}/fpm/php${php_version}-fpm-${domain}.conf"
-        fpm_bin="/usr/sbin/php-fpm${php_version}"
-        fpm_checkconf="/usr/lib/php/php${php_version}-fpm-${domain}-checkconf"
+        php_reopenlogs="/usr/lib/php5/php-fpm-${domain}-reopenlogs"
     fi
 }
 
@@ -153,8 +156,10 @@ function create_fpm_config
         create_tmp FPM_TEMPLATE
         move_or_diff FPM_TEMPLATE ${fpm_conf_file}
 
+        [ ! -d /var/log/php/ ] && mkdir /var/log/php/
         touch ${php_log}
-        chown ${user}:${user} ${php_log}
+        chown root:${user} ${php_log}
+        chmod 660 ${php_log}
     else
         log_warn "PHP FPM Already exist. Use -f to overwrite"
     fi
@@ -180,7 +185,7 @@ function create_fpm_init
         create_tmp FPM_INIT_TEMPLATE
         move_or_diff FPM_INIT_TEMPLATE ${init_file}
     else
-        log "PHP FPM INIT Already exist. Use -f to overwrite"
+        log_warn "PHP FPM INIT Already exist. Use -f to overwrite"
     fi
 }
 
@@ -191,7 +196,47 @@ function create_fpm_service
         create_tmp FPM_SERVICE_TEMPLATE
         move_or_diff FPM_SERVICE_TEMPLATE ${fpm_service}
     else
-        log "PHP FPM SERVICE Already exist. Use -f to overwrite"
+        log_warn "PHP FPM SERVICE Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_log_rotate
+{
+    if $(test_overwrite ${log_rotate})
+    then
+        create_tmp TEMPLATE_LOGROTATE
+        move_or_diff TEMPLATE_LOGROTATE ${log_rotate}
+
+        [ -f ${log_rotate} ] && chown root:root ${log_rotate}
+    else
+        log_warn "LOG ROTATE CONF Already exist. Use -f to overwrite"
+    fi
+
+    if $(test_overwrite ${php_reopenlogs})
+    then
+        create_tmp TEMPLATE_FPM_REOPENLOGS
+        move_or_diff TEMPLATE_FPM_REOPENLOGS ${php_reopenlogs}
+
+        [ -f ${php_reopenlogs} ] && chmod +x ${php_reopenlogs}
+    else
+        log_warn "FPM REOPEN LOGS Already exist. Use -f to overwrite"
+    fi
+}
+
+function create_monit
+{
+    log "Configuring monit"
+    if $(test_overwrite ${monit_conf})
+    then
+        create_tmp TEMPLATE_MONIT
+        move_or_diff TEMPLATE_MONIT ${monit_conf}
+
+        if [ -f ${monit_conf} ]
+        then
+            monit reload 2> /dev/null
+        fi
+    else
+        log_warn "MONIT CONF Already exist. Use -f to overwrite"
     fi
 }
 
@@ -245,10 +290,6 @@ function check_all()
         fi
     fi
 
-    if [ ${apache_test} -eq 0  ]; then
-        log_success "service apache2 reload"
-    fi
-
     if [ "${fpm_test}" -eq 0  ]
     then
         if [ "${ubuntu_version}" = "14.04" ]
@@ -259,6 +300,21 @@ function check_all()
         fi
     fi
 
+    if [ ${apache_test} -eq 0  ]; then
+        log_success "service apache2 reload"
+    fi
+
+    if [ -f ${monit_conf} ]
+    then
+        monit_test=$(monit -t 2> /dev/null)
+
+        if [ "${fpm_test}" -eq 0  ]
+        then
+            log_success "monit monitor php${php_version}-fpm-${domain}"
+        else
+            log_error "*** ERROR Monit ***"
+        fi
+    fi
 }
 
 function print_usage()
@@ -286,7 +342,7 @@ function replace_keys() {
     sed -i "s/FPM_CHECKCONF/${fpm_checkconf//\//\\/}/g" $1
     sed -i "s/FPM_PID/${fpm_pid//\//\\/}/g" $1
     sed -i "s/PHP_LOG/${php_log//\//\\/}/g" $1
-
+    sed -i "s/FPM_REOPENLOGS/${php_reopenlogs//\//\\/}/g" $1
 }
 
 while getopts "d:u:p:fnch?" options; do
@@ -307,7 +363,6 @@ options_check
 
 set_variables_file_path
 
-
 if [ ${compare} -eq 0 ]
 then
     create_vhost_user
@@ -326,6 +381,10 @@ then
     create_fpm_init
 
     create_fpm_service
+
+    create_log_rotate
+
+    create_monit
 fi
 
 if [ ${compare} -eq 0 ]

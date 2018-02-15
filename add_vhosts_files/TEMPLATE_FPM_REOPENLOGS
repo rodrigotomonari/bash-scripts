@@ -1,0 +1,4 @@
+#!/bin/bash
+PIDFILE=FPM_PID
+[ -r "$PIDFILE" ] && kill -USR1 $(cat "$PIDFILE") > /dev/null
+exit 0
