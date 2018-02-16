@@ -70,7 +70,7 @@ function create_vhost_user()
     fi
 
     log "Set user home permission"
-    chmod 711 ${VHOSTS_DIR}/${domain}
+    chmod 710 ${VHOSTS_DIR}/${domain}
 
     log "- Adding www-data to user group"
     addgroup www-data ${user} > /dev/null
