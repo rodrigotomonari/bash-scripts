@@ -72,7 +72,7 @@ function export_all()
 
 function main()
 {
-    cd ${output}
+    [ -n "${output}" ] && cd ${output}
 
     if [ -z "${database}" ]
     then
@@ -81,7 +81,7 @@ function main()
         dump ${database}
     fi
 
-    cd -
+    [ -n "${output}"  ] && cd -
 }
 
 function print_usage()
