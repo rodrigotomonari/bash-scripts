@@ -110,3 +110,5 @@ done
 options_check
 
 main
+
+exit 0
