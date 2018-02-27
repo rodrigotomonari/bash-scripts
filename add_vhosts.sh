@@ -378,7 +378,7 @@ options_check
 
 set_variables_file_path
 
-if [ ${compare} -eq 0 ]
+if [ ${compare} -eq 0 -o ${force} -eq 1 ]
 then
     create_vhost_user
 fi
