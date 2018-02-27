@@ -16,6 +16,7 @@ TEMPLATE_DIR=${BASEDIR}/add_vhosts_files
 force=0
 php_support=1
 compare=0
+ask_confirmation=1
 
 ubuntu_version=$(lsb_release -r -s)
 
@@ -70,6 +71,7 @@ function create_vhost_user()
     fi
 
     log "Set user home permission"
+    chown ${user}:${user} ${VHOSTS_DIR}/${domain}
     chmod 710 ${VHOSTS_DIR}/${domain}
 
     log "- Adding www-data to user group"
@@ -253,11 +255,24 @@ function move_or_diff
     local temp=${TEMPLATE_DIR}/tmp/$1
     local final=$2
 
-    if [ ${compare} -eq 1 ]
+    # Compare files
+    if [ -f ${final} -a ${compare} -eq 1 ]
     then
         log_success "Comparing: ${final} ${temp}"
         compare ${final} ${temp}
         echo ""
+    fi
+
+    # Ask confirmation
+    if [ -f ${final} -a ${ask_confirmation} -eq 1 ]
+    then
+        log_warn "Do you want to replace ${final}?"
+        select yn in "Yes" "No"; do
+            case $yn in
+                Yes ) mv ${temp} ${final}; break;;
+                No ) break;;
+            esac
+        done
     else
         mv ${temp} ${final}
     fi
@@ -325,9 +340,11 @@ function print_usage()
     echo ""
     echo "Options:"
     echo "-u : Use a custom user"
+    echo "-c : Compare if already file exist"
     echo "-n : No PHP support"
     echo "-f : Force files overwrite"
     echo "-p : PHP Version"
+    echo "-y : Do not ask confirmation for file replace"
     echo ""
     exit 1
 }
@@ -345,7 +362,7 @@ function replace_keys() {
     sed -i "s/FPM_REOPENLOGS/${php_reopenlogs//\//\\/}/g" $1
 }
 
-while getopts "d:u:p:fnch?" options; do
+while getopts "d:u:p:fncyh?" options; do
   case ${options} in
     d ) domain=$OPTARG;;
     u ) user=$OPTARG;;
@@ -353,6 +370,7 @@ while getopts "d:u:p:fnch?" options; do
     f ) force=1;;
     n ) php_support=0;;
     c ) compare=1;;
+    y ) ask_confirmation=0;;
     h ) print_usage;;
     \? ) print_usage;;
     * ) print_usage;;
@@ -387,7 +405,7 @@ then
     create_monit
 fi
 
-if [ ${compare} -eq 0 ]
+if [ ${compare} -eq 0 -o ${force} -eq 1 ]
 then
     check_all
 fi
