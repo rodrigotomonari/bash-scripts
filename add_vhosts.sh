@@ -302,16 +302,13 @@ function check_all()
         if [ ${fpm_test} -ne 0 ]
         then
             log_error "*** ERROR IN FPM ***---"
-        fi
-    fi
-
-    if [ "${fpm_test}" -eq 0  ]
-    then
-        if [ "${ubuntu_version}" = "14.04" ]
-        then
-            log_success "service php${php_version}-fpm-${domain} start"
         else
-            log_success "systemctl enable php${php_version}-fpm-${domain} && service php${php_version}-fpm-${domain} start"
+            if [ "${ubuntu_version}" = "14.04" ]
+            then
+                log_success "service php${php_version}-fpm-${domain} start"
+            else
+                log_success "systemctl enable php${php_version}-fpm-${domain} && service php${php_version}-fpm-${domain} start"
+            fi
         fi
     fi
 
