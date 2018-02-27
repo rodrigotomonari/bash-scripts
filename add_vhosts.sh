@@ -174,7 +174,7 @@ function create_fpm_checkconf
         create_tmp FPM_CHECKCONF_TEMPLATE
         move_or_diff FPM_CHECKCONF_TEMPLATE ${fpm_checkconf}
 
-        [ ${compare} -eq 0 ] && chmod +x ${fpm_checkconf}
+        [ -f ${fpm_checkconf} ] && chmod +x ${fpm_checkconf}
     else
         log_warn "PHP FPM CHECKCONF Already exist. Use -f to overwrite"
     fi
