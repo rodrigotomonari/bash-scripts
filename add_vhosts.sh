@@ -82,9 +82,7 @@ function create_vhost_user()
 
     log "Allowing ssh users"
     # Default users
-    ${BASEDIR}/allow-user.sh -d ${domain} -u rodrigo.tomonari
-    ${BASEDIR}/allow-user.sh -d ${domain} -u diego.rocha
-    ${BASEDIR}/allow-user.sh -d ${domain} -u leandro.polimeno 
+    ## TODO Add config variable
 
     # Allow write access to public
     chown ${user}:${user} ${VHOSTS_DIR}/${domain}/public
